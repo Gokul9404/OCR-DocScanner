@@ -1,0 +1,5 @@
+# local folder customization on pc
+*.ini
+
+# additional files
+img_2_pdf_eg.py
