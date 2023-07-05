@@ -8,12 +8,14 @@ from pytesseract import Output as PyTe_OUT
 
 def get_text_from_img(img):
     img_config = r"--psm 11 --oem 3"
+    try:
+        ocr_result = pytesseract.image_to_data(img, config=img_config, output_type = PyTe_OUT.DICT)
 
-    ocr_result = pytesseract.image_to_data(img, config=img_config, output_type = PyTe_OUT.DICT)
+        txt = ocr_result['text']
 
-    txt = ocr_result['text']
-
-    return txt
+        return txt
+    except Exception:
+        return []
 
 #============================================================
 def biggestContour(contours):

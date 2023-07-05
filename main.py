@@ -29,18 +29,19 @@ RUN = True
 CAM_MODE = False
 Camera_connected = False
 Cam = None
-# connect_cam()
 #===========================================
 # Image use Variables
 Image_path = ''
-Image_to_process = None
 Img = None
+Image_to_process = None
 Img_Final = None
 Image_to_show = 0
 Is_extacted = False
 Is_processed = False
-Image_set = False
+Is_Image_setted = False
 Image_from_Camera = False
+Is_Text_extracted  = False
+Text_from_Img = []
 #===========================================
 # Image Properties
 width_img, height_img = 480, 640
@@ -99,17 +100,21 @@ def Change_to_image():
     if not CAM_MODE: 
         tmsg.showinfo("Image", f"Application is already in Image mode")
     if CAM_MODE == True:
-        global  Image_path, Image_to_process, Image_from_Camera, Image_set, Cam_mode_frame, Is_processed, Is_extacted
+        global Img, Image_path, Image_to_process, Image_from_Camera, Is_Image_setted, Cam_mode_frame, Is_processed, Is_extacted, Is_Text_extracted, Img_Final
         CAM_MODE = False
-        Is_processed = False
         Is_extacted = False
+        Is_processed = False
+        Is_Text_extracted = False
         Image_path = None
+        Img = None
+        Img_Final = None
         Cam_mode_frame.destroy()
         Image_mode_widget()
-        if not Image_from_Camera:
+        if Image_from_Camera:
+            Img = Image_to_process.copy()
             Image_to_process = None
-            Image_set = True
-        else: Image_set = False
+            Is_Image_setted = True
+        else: Is_Image_setted = False
 
 def Change_to_camera():
     global CAM_MODE
@@ -118,13 +123,16 @@ def Change_to_camera():
         tmsg.showinfo("Connected", f"Camera is already Connected")
     
     if CAM_MODE == False:
-        global  Image_path, Img, Image_from_Camera, Image_set, Img_mode_frame, Is_extacted, Is_processed
+        global  Image_path, Img, Img_Final, Image_to_process, Image_from_Camera, Is_Image_setted, Img_mode_frame, Is_extacted, Is_processed, Is_Text_extracted
         CAM_MODE = True
         Img = None
-        Image_set = False
+        Img_Final = None
+        Image_path = None
+        Is_Image_setted = False
         Image_from_Camera = False
         Is_processed = False
         Is_extacted = False
+        Is_Text_extracted = False
         Img_mode_frame.destroy()
         Camera_mode_widget()
 
@@ -162,7 +170,7 @@ def set_cam_image():
 
 def Image_mode_widget():
     """Widgets which are Used to Scan Image is created by this function"""
-    global Img_mode_frame, Img_get_but, Set_img_save_but, Get_extrated_but
+    global Img_mode_frame, Img_get_but, Set_img_save_but, Get_extrated_but, Process_img_but, Get_text_but
     
     # Changing the Name of the Window and Top-label
     Base_apk.title("Doc-Scanner Image")
@@ -181,7 +189,7 @@ def Image_mode_widget():
     Set_img_save_but.pack(padx=(15,0),side=LEFT, anchor="s")
 
     # Scan image get text
-    Get_text_but = Button(Img_mode_frame,text='Get Text',font='century 8 bold',bg='#ffdf0f',width=12)
+    Get_text_but = Button(Img_mode_frame,text='Get Text',font='century 8 bold',bg='#ffdf0f',width=12, command = Get_text)
     Get_text_but.pack(padx=(15,0),side=RIGHT, anchor="w")
     
     Get_extrated_but = Button(Img_mode_frame,text='Get Extracted',font='century 8 bold',bg='#ffdf0f',width=12, command=Extract_image)
@@ -191,11 +199,11 @@ def Image_mode_widget():
     Process_img_but.pack(padx=(15,0),side=TOP, anchor="w")
 
 def Get_img_path():
-    global Image_path, Img, Image_set
+    global Image_path, Img, Is_Image_setted
     try:
         Image_path = fld.askopenfilename(filetypes= ( ("JPG","*.jpg"),("JPEG","*.jpeg"),("PNG","*.png")))
         Img = cv2.imread(Image_path)
-        Image_set = True
+        Is_Image_setted = True
     except Exception: pass
     # print(Img.shape)
 
@@ -239,30 +247,52 @@ def Extract_image():
             pts1 = np.float32(biggest) 
             pts2 = np.float32([[0, 0],[width, 0], [0, height],[width, height]]) 
             matrix = cv2.getPerspectiveTransform(pts1, pts2)
-            img_final = cv2.warpPerspective(Gray, matrix, (width, height))
+            img_final = cv2.warpPerspective(img, matrix, (width, height))
             img_final = cv2.resize(img_final,(width, height))
         #========================================================
         Img = img_copy.copy()
-        Image_to_process = img_final.copy()
+        Image_to_process = cv2.cvtColor(img_final, cv2.COLOR_BGR2GRAY)
         Is_extacted = True
         Get_extrated_but['text'] = "Show Extarcted"
     elif Is_extacted:
         Image_to_show = 1
         
 def Process_image():
-    global Is_extacted, Is_processed, Image_to_show
+    global Is_extacted, Is_processed, Image_to_show, Image_to_process, Img_Final, Process_img_but
+
+    # print(f"{Is_extacted} {Is_processed}")
     if not Is_extacted: return
     
     if not Is_processed:
-        pass
+        # thresh, im_bw = cv2.threshold(img_gray, 150, 240, cv2.THRESH_BINARY)
+        im_bw = cv2.adaptiveThreshold(Image_to_process, 200, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 5, 5)
+        img_no_noise = utils.noise_removal(im_bw)
+        dilated_image = utils.thick_font(img_no_noise)
+        Img_Final = dilated_image.copy()
+        Is_processed = True
+        Process_img_but['text'] = "Show Processed"
     elif Is_processed:
         Image_to_show = 2
 
+def Get_text():
+    global Img_Final, Is_Text_extracted, Get_text_but, Text_from_Img
+    if Is_Text_extracted: 
+        return
+
+    Text_from_Img = utils.get_text_from_img(Img_Final)
+    if Text_from_Img == []:
+        tmsg.showinfo("Unable to process!!","The given image is being unable to get processed for TEXT extraction") 
+        return
+    else:
+        print(Text_from_Img)
+        Is_Text_extracted = True
+
 def Apk_loop():
+    global Is_Image_setted, Image_to_show, Img, Image_to_process, Img_Final
     if CAM_MODE: Camera_mode_widget()
     else: Image_mode_widget()
     while RUN:
-        if Img is not None:
+        if Is_Image_setted:
             if not CAM_MODE:
                 if Image_to_show == 0:
                     Draw_image(Img)

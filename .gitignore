@@ -4,3 +4,7 @@
 # additional files
 img_2_pdf_eg.py
 extra.py
+
+# cache folder
+__pycache__/
+__pycache__
