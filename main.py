@@ -2,13 +2,11 @@ import cv2
 import numpy as np
 from PIL import Image, ImageTk
 
-import utils
-
-import tkinter as tk
-from tkinter import BitmapImage, Frame , Label, Canvas, Button, Menu, Tk, Text, Entry, ACTIVE, DISABLED,  TOP, LEFT, RIGHT,X, END, BOTTOM, BOTH, NW, CENTER
+from tkinter import Frame , Label, Canvas, Button, Menu, Tk, Text, Entry, ACTIVE, DISABLED, TOP, LEFT, RIGHT, X, BOTH, NW
 from tkinter import filedialog as fld
 from tkinter import messagebox as tmsg
 
+import utils
 #==============================================================================
 # Tkinter Apk Properties
 background_col = "#e1ecfa"
@@ -30,71 +28,73 @@ CAM_MODE = False
 Camera_connected = False
 Cam = None
 #===========================================
-# Image use Variables
-Image_path = ''
-Img = None
-Image_to_process = None
-Img_Final = None
-Image_to_show = 0
-Is_extacted = False
-Is_processed = False
-Is_Image_setted = False
-Image_from_Camera = False
-Is_Text_extracted  = False
-Text_from_Img = []
+# Image Processing-properties Variables
+Image_path = ''             # Image directory path for access
+Img = None                  # Image being captured or Selected
+Image_to_process = None     # Image segement needed for Text-extraction
+Img_Final = None            # Image used for final process of text-extraction
+Image_to_show = 0           # Which image to show in the Apk (Img[0], Image_to_Process[1], Img_final[2])
+Is_Image_setted = False     # Is there any image selected for processing
+Is_extacted = False         # Is image segment is extracted
+Is_processed = False        # Is image processed for Text-extracted
+Image_from_Camera = False   # Is image captured from camera to process
+Is_Text_extracted  = False  # Are text-extracted from the image
 #===========================================
 # Image Properties
 width_img, height_img = 480, 640
 Threshold1, Threshold2 = 65, 210
-#================================================================
-
+#==============================================================================
 def Draw_image(img, mode=0):
+    """Used for drawing cv2(Image) into the Canvas
+
+    Args:
+        img     : Image to be displayed
+        mode    : Mode to image Resizing. 0 [resize with same aspect ratio], 1[resize to 640x480px]. Defaults to 0.
+    """
     global Base_apk ,width_img, height_img, img_canvas, Image_to_process
     if img is None: return
     try: 
         height, width = img.shape[:2]
         fin_height, fin_width = height, width
         fin_x, fin_y = 0, 0
-        # print("..")
-        # print(width, height)
 
         if mode == 0:
             if width > height:
-                # print("case-1")
                 final_aspect = width_img / width
                 fin_width = width_img
                 fin_height = int(final_aspect * height)
             elif height >= width:
-                # print("case-2")
                 final_aspect = height_img / height
                 fin_height = height_img 
                 fin_width = int(final_aspect * width)
         else:
             fin_height, fin_width = height_img, width_img
-        # print("//")
         fin_x = int((width_img - fin_width) // 2)
         fin_y = int((height_img - fin_height)//2)    
 
-        # print(f"Final: {fin_x} {fin_y} {fin_height} {fin_width}")
         show_img_base = cv2.resize(img, (fin_width,fin_height))
         show_img_base = cv2.cvtColor(show_img_base, cv2.COLOR_BGR2RGB)
         show_img = ImageTk.PhotoImage(Image.fromarray(show_img_base))
-        # print(type(show_img))
         img_canvas.create_image(fin_x,fin_y,image=show_img,anchor=NW)
     except Exception: pass
     Update_base_apk()
 
+#================================================================
 def Update_base_apk():
+    """
+    Method used for Updating the Base-Apk 
+    """
     global Base_apk, RUN
     try:
         Base_apk.update()
     except Exception:
         RUN =  False
 
-def nothing():
-    pass
-
+#==============================================================================
 def Change_to_image():
+    """
+    To change mode from Camera-Mode to Image-Mode, with repective variable changes
+    """
     global CAM_MODE
     print(CAM_MODE)
     if not CAM_MODE: 
@@ -116,7 +116,12 @@ def Change_to_image():
             Is_Image_setted = True
         else: Is_Image_setted = False
 
+#================================================================
 def Change_to_camera():
+    """
+    To change mode from Image-Mode to Camera-Mode,
+    Set variables for image procesing.
+    """
     global CAM_MODE
     print(CAM_MODE)
     if CAM_MODE: 
@@ -136,8 +141,7 @@ def Change_to_camera():
         Img_mode_frame.destroy()
         Camera_mode_widget()
 
-#================================================================
-
+#==============================================================================
 def Camera_mode_widget():
     """Widgets which are Used to collect image from camera is created by this function"""
     global Cam_mode_frame, Img_set_but, img_canvas
@@ -145,9 +149,6 @@ def Camera_mode_widget():
     # Changing the Name of the Window and Top-label
     Base_apk.title("Doc-Scanner Camera")
     top_name.config(text='Camera Mode')
-    # Changing color of the Canavs
-    # img_canvas.delete('all')
-    # img_canvas.configure(bg="#b8c3d6")
 
     # Creating a Frame for the required widgets 
     Cam_mode_frame = Frame(Base_apk,bg=background_col,width=450,height=120,borderwidth=2)
@@ -157,6 +158,7 @@ def Camera_mode_widget():
     Img_set_but = Button(Cam_mode_frame,text='Scan',font='century 14 bold',bg='#ffdf0f',width=10,command=set_cam_image)
     Img_set_but.pack(pady=1,padx=(15,0),side=LEFT)
 
+#================================================================
 def set_cam_image():
     global Image_to_process, Image_from_Camera, Img, Camera_connected
     if Camera_connected:
@@ -166,8 +168,7 @@ def set_cam_image():
     elif not Camera_connected:
         tmsg.showinfo("Cam not found", f"No Camera found to read image!!!")
 
-#================================================================
-
+#==============================================================================
 def Image_mode_widget():
     """Widgets which are Used to Scan Image is created by this function"""
     global Img_mode_frame, Img_get_but, Set_img_save_but, Get_extrated_but, Process_img_but, Get_text_but
@@ -198,16 +199,23 @@ def Image_mode_widget():
     Process_img_but = Button(Img_mode_frame,text='Process Image',font='century 8 bold',bg='#ffdf0f',width=12, command=Process_image)
     Process_img_but.pack(padx=(15,0),side=TOP, anchor="w")
 
+#================================================================
 def Get_img_path():
+    """
+    Used to get Directory Path of the image user want to Process, and set the Image for processing
+    """
     global Image_path, Img, Is_Image_setted
     try:
         Image_path = fld.askopenfilename(filetypes= ( ("JPG","*.jpg"),("JPEG","*.jpeg"),("PNG","*.png")))
         Img = cv2.imread(Image_path)
         Is_Image_setted = True
     except Exception: pass
-    # print(Img.shape)
 
+#================================================================
 def Extract_image():
+    """
+        Used to get the image-segment for which further processing can be done 
+    """
     global Img, Image_to_process, Is_extacted, Image_to_show, Get_extrated_but
     if not Is_extacted: 
         if Img is None: return
@@ -231,7 +239,7 @@ def Extract_image():
         Final_edge = cv2.morphologyEx(Edges, cv2.MORPH_CLOSE, kernel)
         #========================================================
         # Finding Contours in the 'Edge'-image
-        contour, heirarchy = cv2.findContours(Final_edge , cv2.RETR_EXTERNAL , cv2.CHAIN_APPROX_SIMPLE)
+        contour, _ = cv2.findContours(Final_edge , cv2.RETR_EXTERNAL , cv2.CHAIN_APPROX_SIMPLE)
         
         # FIND THE BIGGEST CONTOUR
         biggest = utils.biggestContour(contour)
@@ -256,15 +264,17 @@ def Extract_image():
         Get_extrated_but['text'] = "Show Extarcted"
     elif Is_extacted:
         Image_to_show = 1
-        
+
+#================================================================  
 def Process_image():
+    """
+        Convert the Extracted-image_segment (apply different filters) to binary-channel image, that can be used for Text-extraction
+    """
     global Is_extacted, Is_processed, Image_to_show, Image_to_process, Img_Final, Process_img_but
 
-    # print(f"{Is_extacted} {Is_processed}")
     if not Is_extacted: return
     
     if not Is_processed:
-        # thresh, im_bw = cv2.threshold(img_gray, 150, 240, cv2.THRESH_BINARY)
         im_bw = cv2.adaptiveThreshold(Image_to_process, 200, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 5, 5)
         img_no_noise = utils.noise_removal(im_bw)
         dilated_image = utils.thick_font(img_no_noise)
@@ -274,9 +284,16 @@ def Process_image():
     elif Is_processed:
         Image_to_show = 2
 
+#================================================================
 def Get_text():
+    """
+        Takes the binary-channel image [Img_final], and extract Text from it [and save them later].
+    """
     global Img_Final, Is_Text_extracted, Get_text_but, Text_from_Img
-    if Is_Text_extracted: 
+    if Is_Text_extracted:
+        with open("Text_from_image.txt", 'w') as f:
+            txt = " ".join(Text_from_Img)
+            f.write(txt)
         return
 
     Text_from_Img = utils.get_text_from_img(Img_Final)
@@ -284,26 +301,32 @@ def Get_text():
         tmsg.showinfo("Unable to process!!","The given image is being unable to get processed for TEXT extraction") 
         return
     else:
-        print(Text_from_Img)
         Is_Text_extracted = True
+        Get_text_but['text'] = "Save text"
 
+#==============================================================================
 def Apk_loop():
+    """
+        It consist the Mainloop, used to run the APK.
+    """
     global Is_Image_setted, Image_to_show, Img, Image_to_process, Img_Final
     if CAM_MODE: Camera_mode_widget()
     else: Image_mode_widget()
     while RUN:
-        if Is_Image_setted:
-            if not CAM_MODE:
-                if Image_to_show == 0:
-                    Draw_image(Img)
-                if Image_to_show == 1:
-                    Draw_image(Image_to_process)
-                if Image_to_show == 2:
-                    Draw_image(Img_Final)
-        else:
-            Update_base_apk()
-        
-#================================================================
+        try:
+            if Is_Image_setted:
+                if not CAM_MODE:
+                    if Image_to_show == 0:
+                        Draw_image(Img)
+                    if Image_to_show == 1:
+                        Draw_image(Image_to_process)
+                    if Image_to_show == 2:
+                        Draw_image(Img_Final)
+            else:
+                Update_base_apk()
+        except Exception: pass        
+
+#==============================================================================
 # Creating the tkinter apk
 Base_apk = Tk()
 Base_apk.geometry('520x740')
@@ -328,7 +351,6 @@ canvas_frame.pack(side=TOP,fill=BOTH)
 img_canvas = Canvas(canvas_frame,width=width_img,height=height_img,bg='#6a6e75',borderwidth=2)
 img_canvas.pack(side=TOP,padx=15)
 
-#================================================================
-
+#==============================================================================
 if __name__ == "__main__":
     Apk_loop()
