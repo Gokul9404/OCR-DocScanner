@@ -2,7 +2,6 @@
 *.ini
 
 # additional files
-img_2_pdf_eg.py
 extra.py
 
 # cache folder
