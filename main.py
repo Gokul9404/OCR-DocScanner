@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageTk
 
-from tkinter import Frame , Label, Canvas, Button, Menu, Tk, Text, Entry, ACTIVE, DISABLED, TOP, LEFT, RIGHT, X, BOTH, NW
+from tkinter import Frame , Label, Canvas, Button, Menu, Tk, TOP, LEFT, RIGHT, X, BOTH, NW
 from tkinter import filedialog as fld
 from tkinter import messagebox as tmsg
 
@@ -160,6 +160,9 @@ def Camera_mode_widget():
 
 #================================================================
 def set_cam_image():
+    """
+        Used to set the image captured from Camera for further processing
+    """
     global Image_to_process, Image_from_Camera, Img, Camera_connected
     if Camera_connected:
         Image_from_Camera = True
